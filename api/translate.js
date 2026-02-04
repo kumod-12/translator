@@ -4,7 +4,7 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const apiKey = process.env.AZURE_OPENAI_API_KEY;
+    const apiKey = (process.env.AZURE_OPENAI_API_KEY || '').trim();
     const apiEndpoint = process.env.AZURE_OPENAI_ENDPOINT || 'https://ndtv-openai.openai.azure.com/openai/deployments/gpt-4.1-mini/chat/completions?api-version=2025-01-01-preview';
 
     if (!apiKey) {
