@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Language Translator</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 24px;
+            font-weight: 600;
+        }
+
+        .api-section {
+            background: #fff;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .api-section label {
+            font-size: 14px;
+            color: #555;
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .api-section input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .api-section input:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+
+        .translator-box {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        @media (max-width: 600px) {
+            .translator-box {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .lang-panel {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .lang-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .lang-header select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            background: #fff;
+            cursor: pointer;
+        }
+
+        .lang-header select:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+
+        .copy-btn {
+            background: none;
+            border: 1px solid #ddd;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            color: #555;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: #f0f0f0;
+            border-color: #ccc;
+        }
+
+        .copy-btn.copied {
+            background: #d4edda;
+            border-color: #28a745;
+            color: #28a745;
+        }
+
+        textarea {
+            width: 100%;
+            height: 200px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 15px;
+            resize: vertical;
+            font-family: inherit;
+            line-height: 1.5;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+
+        textarea[readonly] {
+            background: #fafafa;
+        }
+
+        .actions {
+            grid-column: 1 / -1;
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .translate-btn {
+            background: #007bff;
+            color: #fff;
+            border: none;
+            padding: 12px 32px;
+            border-radius: 6px;
+            font-size: 15px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .translate-btn:hover {
+            background: #0056b3;
+        }
+
+        .translate-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .swap-btn {
+            background: #fff;
+            border: 1px solid #ddd;
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .swap-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 16px;
+            grid-column: 1 / -1;
+            display: none;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #fff;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Language Translator</h1>
+
+        <div class="api-section">
+            <label for="apiKey">Azure OpenAI API Key</label>
+            <input type="password" id="apiKey" placeholder="Enter your API key">
+        </div>
+
+        <div class="api-section">
+            <label for="customPrompt">Custom Instructions (optional)</label>
+            <input type="text" id="customPrompt" placeholder="e.g., Translate formally, Keep technical terms in English, Use simple words...">
+        </div>
+
+        <div class="translator-box">
+            <div class="lang-panel">
+                <div class="lang-header">
+                    <select id="sourceLang">
+                        <option value="English">English</option>
+                        <option value="Hindi">Hindi</option>
+                        <option value="Marathi">Marathi</option>
+                    </select>
+                    <button class="copy-btn" id="copySourceBtn">Copy</button>
+                </div>
+                <textarea id="sourceText" placeholder="Enter text to translate..."></textarea>
+            </div>
+
+            <div class="lang-panel">
+                <div class="lang-header">
+                    <select id="targetLang">
+                        <option value="English">English</option>
+                        <option value="Hindi">Hindi</option>
+                        <option value="Marathi" selected>Marathi</option>
+                    </select>
+                    <button class="copy-btn" id="copyTargetBtn">Copy</button>
+                </div>
+                <textarea id="targetText" readonly placeholder="Translation will appear here..."></textarea>
+            </div>
+
+            <div class="actions">
+                <button class="swap-btn" id="swapBtn">&#8644; Swap</button>
+                <button class="translate-btn" id="translateBtn">Translate</button>
+            </div>
+
+            <div class="error" id="errorBox"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_ENDPOINT = 'https://ndtv-openai.openai.azure.com/openai/deployments/gpt-4.1-mini/chat/completions?api-version=2025-01-01-preview';
+
+        // Get DOM elements
+        const apiKeyInput = document.getElementById('apiKey');
+        const customPromptInput = document.getElementById('customPrompt');
+        const sourceTextArea = document.getElementById('sourceText');
+        const targetTextArea = document.getElementById('targetText');
+        const sourceLangSelect = document.getElementById('sourceLang');
+        const targetLangSelect = document.getElementById('targetLang');
+        const translateBtn = document.getElementById('translateBtn');
+        const swapBtn = document.getElementById('swapBtn');
+        const copySourceBtn = document.getElementById('copySourceBtn');
+        const copyTargetBtn = document.getElementById('copyTargetBtn');
+        const errorBox = document.getElementById('errorBox');
+
+        // Translation function
+        async function doTranslate() {
+            const apiKey = apiKeyInput.value.trim();
+            const sourceText = sourceTextArea.value.trim();
+            const sourceLang = sourceLangSelect.value;
+            const targetLang = targetLangSelect.value;
+
+            // Validation
+            errorBox.style.display = 'none';
+
+            if (!apiKey) {
+                showError('Please enter your API key');
+                return;
+            }
+
+            if (!sourceText) {
+                showError('Please enter text to translate');
+                return;
+            }
+
+            if (sourceLang === targetLang) {
+                showError('Source and target languages must be different');
+                return;
+            }
+
+            // Show loading state
+            translateBtn.disabled = true;
+            translateBtn.innerHTML = '<span class="loading"></span>Translating...';
+
+            try {
+                const customInstructions = customPromptInput.value.trim();
+                const basePrompt = 'Translate the following text from ' + sourceLang + ' to ' + targetLang + '. Only provide the translation, nothing else.';
+                let prompt;
+                if (customInstructions) {
+                    prompt = basePrompt + '\n\nAdditional instructions: ' + customInstructions + '\n\nText: ' + sourceText;
+                } else {
+                    prompt = basePrompt + '\n\nText: ' + sourceText;
+                }
+
+                console.log('Sending request to:', API_ENDPOINT);
+                console.log('Prompt:', prompt);
+
+                const response = await fetch(API_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'api-key': apiKey
+                    },
+                    body: JSON.stringify({
+                        messages: [
+                            { role: 'user', content: prompt }
+                        ]
+                    })
+                });
+
+                console.log('Response status:', response.status);
+
+                const data = await response.json();
+                console.log('Response data:', JSON.stringify(data, null, 2));
+
+                if (!response.ok) {
+                    throw new Error(data.error?.message || 'API error: ' + response.status);
+                }
+
+                // Extract the translated text from the response
+                let translatedText = '';
+
+                // Format 1: Responses API format with output array
+                if (data.output && Array.isArray(data.output)) {
+                    for (let i = 0; i < data.output.length; i++) {
+                        const item = data.output[i];
+                        if (item.type === 'message' && item.content) {
+                            for (let j = 0; j < item.content.length; j++) {
+                                const content = item.content[j];
+                                if (content.type === 'output_text' || content.type === 'text') {
+                                    translatedText = content.text;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                // Format 2: Chat completions format
+                else if (data.choices && data.choices[0]) {
+                    if (data.choices[0].message && data.choices[0].message.content) {
+                        translatedText = data.choices[0].message.content;
+                    } else if (data.choices[0].text) {
+                        translatedText = data.choices[0].text;
+                    }
+                }
+                // Format 3: Simple output_text field
+                else if (data.output_text) {
+                    translatedText = data.output_text;
+                }
+                // Format 4: Direct text field
+                else if (data.text) {
+                    translatedText = data.text;
+                }
+
+                if (!translatedText) {
+                    console.log('Could not extract text from response. Full response:', data);
+                    showError('Could not extract translation. Check browser console (F12) for response format.');
+                } else {
+                    targetTextArea.value = translatedText.trim();
+                }
+
+            } catch (error) {
+                console.error('Translation error:', error);
+                showError(error.message || 'An error occurred');
+            } finally {
+                translateBtn.disabled = false;
+                translateBtn.innerHTML = 'Translate';
+            }
+        }
+
+        function showError(message) {
+            errorBox.textContent = message;
+            errorBox.style.display = 'block';
+        }
+
+        function copyText(textarea, btn) {
+            const text = textarea.value;
+            if (!text) return;
+
+            navigator.clipboard.writeText(text).then(function() {
+                btn.textContent = 'Copied!';
+                btn.classList.add('copied');
+                setTimeout(function() {
+                    btn.textContent = 'Copy';
+                    btn.classList.remove('copied');
+                }, 2000);
+            });
+        }
+
+        function swapLanguages() {
+            // Swap language selections
+            const tempLang = sourceLangSelect.value;
+            sourceLangSelect.value = targetLangSelect.value;
+            targetLangSelect.value = tempLang;
+
+            // Swap text content
+            const tempText = sourceTextArea.value;
+            sourceTextArea.value = targetTextArea.value;
+            targetTextArea.value = tempText;
+        }
+
+        // Event listeners
+        translateBtn.addEventListener('click', doTranslate);
+        swapBtn.addEventListener('click', swapLanguages);
+        copySourceBtn.addEventListener('click', function() {
+            copyText(sourceTextArea, copySourceBtn);
+        });
+        copyTargetBtn.addEventListener('click', function() {
+            copyText(targetTextArea, copyTargetBtn);
+        });
+
+        // Ctrl+Enter to translate
+        sourceTextArea.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                doTranslate();
+            }
+        });
+
+        // Save API key and prompt to localStorage
+        apiKeyInput.addEventListener('input', function() {
+            localStorage.setItem('translator_apiKey', apiKeyInput.value);
+        });
+        customPromptInput.addEventListener('input', function() {
+            localStorage.setItem('translator_customPrompt', customPromptInput.value);
+        });
+
+        // Load saved values on page load
+        const savedApiKey = localStorage.getItem('translator_apiKey');
+        const savedPrompt = localStorage.getItem('translator_customPrompt');
+        if (savedApiKey) apiKeyInput.value = savedApiKey;
+        if (savedPrompt) customPromptInput.value = savedPrompt;
+
+        console.log('Translator loaded successfully');
+    </script>
+</body>
+</html>
