@@ -4,8 +4,7 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const apiKey = (process.env.AZURE_OPENAI_API_KEY || '').trim();
-    const apiEndpoint = process.env.AZURE_OPENAI_ENDPOINT || 'https://ndtv-openai.openai.azure.com/openai/deployments/gpt-4.1-mini/chat/completions?api-version=2025-01-01-preview';
+    const apiKey = (process.env.OPENAI_API_KEY || '').trim();
 
     if (!apiKey) {
         return res.status(500).json({ error: 'API key not configured' });
@@ -26,13 +25,14 @@ export default async function handler(req, res) {
             prompt = basePrompt + '\n\nText: ' + sourceText;
         }
 
-        const response = await fetch(apiEndpoint, {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'api-key': apiKey
+                'Authorization': 'Bearer ' + apiKey
             },
             body: JSON.stringify({
+                model: 'gpt-4o-mini',
                 messages: [
                     { role: 'user', content: prompt }
                 ]
