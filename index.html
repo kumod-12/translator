@@ -217,8 +217,22 @@
         <h1>Language Translator</h1>
 
         <div class="api-section">
-            <label for="customPrompt">Custom Instructions (optional)</label>
-            <input type="text" id="customPrompt" placeholder="e.g., Translate formally, Keep technical terms in English, Use simple words...">
+            <label for="userPrompt">User Prompt <button type="button" id="resetPromptBtn" style="font-size:12px;padding:2px 8px;margin-left:8px;cursor:pointer;border:1px solid #ddd;border-radius:4px;background:#fff;">Reset to Default</button></label>
+            <textarea id="userPrompt" rows="14" style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:inherit;line-height:1.5;resize:vertical;">Output Structure:
+
+1. Marathi Headline
+2. Short Description (2–3 sentences summary in Marathi)
+3. Topics (3–5 relevant topics in English, separated by commas)
+4. Full Marathi News Copy (detailed, well-structured paragraphs)
+
+Additional Instructions:
+- Ensure the first paragraph clearly answers What, Where, When, Who.
+- Keep the language simple, natural, and readable.
+- Maintain factual accuracy.
+- Do not add extra commentary outside the required structure.
+- Optimise the headline for clarity and search visibility.
+- Ensure topics reflect strong search intent.
+- Avoid keyword stuffing.</textarea>
         </div>
 
         <div class="translator-box">
@@ -256,8 +270,25 @@
     </div>
 
     <script>
+        const DEFAULT_USER_PROMPT = `Output Structure:
+
+1. Marathi Headline
+2. Short Description (2–3 sentences summary in Marathi)
+3. Topics (3–5 relevant topics in English, separated by commas)
+4. Full Marathi News Copy (detailed, well-structured paragraphs)
+
+Additional Instructions:
+- Ensure the first paragraph clearly answers What, Where, When, Who.
+- Keep the language simple, natural, and readable.
+- Maintain factual accuracy.
+- Do not add extra commentary outside the required structure.
+- Optimise the headline for clarity and search visibility.
+- Ensure topics reflect strong search intent.
+- Avoid keyword stuffing.`;
+
         // Get DOM elements
-        const customPromptInput = document.getElementById('customPrompt');
+        const userPromptInput = document.getElementById('userPrompt');
+        const resetPromptBtn = document.getElementById('resetPromptBtn');
         const sourceTextArea = document.getElementById('sourceText');
         const targetTextArea = document.getElementById('targetText');
         const sourceLangSelect = document.getElementById('sourceLang');
@@ -292,7 +323,7 @@
             translateBtn.innerHTML = '<span class="loading"></span>Translating...';
 
             try {
-                const customInstructions = customPromptInput.value.trim();
+                const userPrompt = userPromptInput.value.trim();
 
                 const response = await fetch('/api/translate', {
                     method: 'POST',
@@ -303,7 +334,7 @@
                         sourceLang,
                         targetLang,
                         sourceText,
-                        customInstructions: customInstructions || undefined
+                        userPrompt: userPrompt || undefined
                     })
                 });
 
@@ -372,14 +403,20 @@
             }
         });
 
-        // Save custom prompt to localStorage
-        customPromptInput.addEventListener('input', function() {
-            localStorage.setItem('translator_customPrompt', customPromptInput.value);
+        // Reset prompt button
+        resetPromptBtn.addEventListener('click', function() {
+            userPromptInput.value = DEFAULT_USER_PROMPT;
+            localStorage.removeItem('translator_userPrompt');
+        });
+
+        // Save user prompt to localStorage
+        userPromptInput.addEventListener('input', function() {
+            localStorage.setItem('translator_userPrompt', userPromptInput.value);
         });
 
         // Load saved values on page load
-        const savedPrompt = localStorage.getItem('translator_customPrompt');
-        if (savedPrompt) customPromptInput.value = savedPrompt;
+        const savedPrompt = localStorage.getItem('translator_userPrompt');
+        if (savedPrompt) userPromptInput.value = savedPrompt;
 
         console.log('Translator loaded successfully');
     </script>

@@ -11,7 +11,7 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { sourceLang, targetLang, sourceText, customInstructions } = req.body;
+        const { sourceLang, targetLang, sourceText, userPrompt: customUserPrompt } = req.body;
 
         if (!sourceLang || !targetLang || !sourceText) {
             return res.status(400).json({ error: 'Missing required fields' });
@@ -33,10 +33,10 @@ Strict Rules:
 - No explanations.
 - Output only the final Marathi content.`;
 
-        let userPrompt = `Translate the following ${sourceLang} text into ${targetLang}:\n\n${sourceText}`;
+        let userMessage = `Translate the following ${sourceLang} text into ${targetLang}:\n\n${sourceText}`;
 
-        if (customInstructions) {
-            userPrompt += `\n\nAdditional instructions: ${customInstructions}`;
+        if (customUserPrompt) {
+            userMessage += `\n\n${customUserPrompt}`;
         }
 
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -49,7 +49,7 @@ Strict Rules:
                 model: 'gpt-4.1',
                 messages: [
                     { role: 'system', content: systemPrompt },
-                    { role: 'user', content: userPrompt }
+                    { role: 'user', content: userMessage }
                 ],
                 temperature: 0.3
             })
