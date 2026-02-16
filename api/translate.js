@@ -11,32 +11,21 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { sourceLang, targetLang, sourceText, userPrompt: customUserPrompt } = req.body;
+        const { sourceLang, targetLang, sourceText, systemPrompt, userPrompt, model } = req.body;
 
         if (!sourceLang || !targetLang || !sourceText) {
             return res.status(400).json({ error: 'Missing required fields' });
         }
 
-        const systemPrompt = `You are a Senior Marathi SEO Editor for a leading digital publishing platform.
+        const allowedModels = ['gpt-4.1', 'gpt-4.1-mini', 'gpt-4.1-nano', 'gpt-4o', 'gpt-4o-mini'];
+        const selectedModel = allowedModels.includes(model) ? model : 'gpt-4.1';
 
-Your job is to translate English content into natural, fluent Marathi suitable for digital publishing.
-
-Strict Rules:
-- Do not translate word-by-word.
-- Use simple, modern Marathi.
-- Avoid robotic or machine-translated tone.
-- Do not change facts, names, numbers, or dates.
-- Keep all numerals in English format (1, 2026, 50).
-- Do not add assumptions or extra details.
-- Maintain terminology consistency.
-- No emojis.
-- No explanations.
-- Output only the final Marathi content.`;
+        const finalSystemPrompt = systemPrompt || 'You are a professional translator. Translate accurately and naturally. Output only the translation.';
 
         let userMessage = `Translate the following ${sourceLang} text into ${targetLang}:\n\n${sourceText}`;
 
-        if (customUserPrompt) {
-            userMessage += `\n\n${customUserPrompt}`;
+        if (userPrompt) {
+            userMessage += `\n\n${userPrompt}`;
         }
 
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -46,9 +35,9 @@ Strict Rules:
                 'Authorization': 'Bearer ' + apiKey
             },
             body: JSON.stringify({
-                model: 'gpt-4.1',
+                model: selectedModel,
                 messages: [
-                    { role: 'system', content: systemPrompt },
+                    { role: 'system', content: finalSystemPrompt },
                     { role: 'user', content: userMessage }
                 ],
                 temperature: 0.3
