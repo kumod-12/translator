@@ -217,8 +217,52 @@
         <h1>Language Translator</h1>
 
         <div class="api-section">
-            <label for="customPrompt">Custom Instructions (optional)</label>
-            <input type="text" id="customPrompt" placeholder="e.g., Translate formally, Keep technical terms in English, Use simple words...">
+            <label for="modelSelect">Model</label>
+            <select id="modelSelect" style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px;background:#fff;cursor:pointer;">
+                <option value="gpt-4.1" selected>GPT-4.1</option>
+                <option value="gpt-4.1-mini">GPT-4.1 Mini</option>
+                <option value="gpt-4.1-nano">GPT-4.1 Nano</option>
+                <option value="gpt-4o">GPT-4o</option>
+                <option value="gpt-4o-mini">GPT-4o Mini</option>
+            </select>
+        </div>
+
+        <div class="api-section">
+            <label for="systemPrompt">System Prompt <button type="button" id="resetSystemBtn" style="font-size:12px;padding:2px 8px;margin-left:8px;cursor:pointer;border:1px solid #ddd;border-radius:4px;background:#fff;">Reset to Default</button></label>
+            <textarea id="systemPrompt" rows="12" style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:inherit;line-height:1.5;resize:vertical;">You are a Senior Marathi SEO Editor for a leading digital publishing platform.
+
+Your job is to translate English content into natural, fluent Marathi suitable for digital publishing.
+
+Strict Rules:
+- Do not translate word-by-word.
+- Use simple, modern Marathi.
+- Avoid robotic or machine-translated tone.
+- Do not change facts, names, numbers, or dates.
+- Keep all numerals in English format (1, 2026, 50).
+- Do not add assumptions or extra details.
+- Maintain terminology consistency.
+- No emojis.
+- No explanations.
+- Output only the final Marathi content.</textarea>
+        </div>
+
+        <div class="api-section">
+            <label for="userPrompt">User Prompt <button type="button" id="resetPromptBtn" style="font-size:12px;padding:2px 8px;margin-left:8px;cursor:pointer;border:1px solid #ddd;border-radius:4px;background:#fff;">Reset to Default</button></label>
+            <textarea id="userPrompt" rows="14" style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:inherit;line-height:1.5;resize:vertical;">Output Structure:
+
+1. Marathi Headline
+2. Short Description (2–3 sentences summary in Marathi)
+3. Topics (3–5 relevant topics in English, separated by commas)
+4. Full Marathi News Copy (detailed, well-structured paragraphs)
+
+Additional Instructions:
+- Ensure the first paragraph clearly answers What, Where, When, Who.
+- Keep the language simple, natural, and readable.
+- Maintain factual accuracy.
+- Do not add extra commentary outside the required structure.
+- Optimise the headline for clarity and search visibility.
+- Ensure topics reflect strong search intent.
+- Avoid keyword stuffing.</textarea>
         </div>
 
         <div class="translator-box">
@@ -256,8 +300,44 @@
     </div>
 
     <script>
+        const DEFAULT_SYSTEM_PROMPT = `You are a Senior Marathi SEO Editor for a leading digital publishing platform.
+
+Your job is to translate English content into natural, fluent Marathi suitable for digital publishing.
+
+Strict Rules:
+- Do not translate word-by-word.
+- Use simple, modern Marathi.
+- Avoid robotic or machine-translated tone.
+- Do not change facts, names, numbers, or dates.
+- Keep all numerals in English format (1, 2026, 50).
+- Do not add assumptions or extra details.
+- Maintain terminology consistency.
+- No emojis.
+- No explanations.
+- Output only the final Marathi content.`;
+
+        const DEFAULT_USER_PROMPT = `Output Structure:
+
+1. Marathi Headline
+2. Short Description (2–3 sentences summary in Marathi)
+3. Topics (3–5 relevant topics in English, separated by commas)
+4. Full Marathi News Copy (detailed, well-structured paragraphs)
+
+Additional Instructions:
+- Ensure the first paragraph clearly answers What, Where, When, Who.
+- Keep the language simple, natural, and readable.
+- Maintain factual accuracy.
+- Do not add extra commentary outside the required structure.
+- Optimise the headline for clarity and search visibility.
+- Ensure topics reflect strong search intent.
+- Avoid keyword stuffing.`;
+
         // Get DOM elements
-        const customPromptInput = document.getElementById('customPrompt');
+        const modelSelect = document.getElementById('modelSelect');
+        const systemPromptInput = document.getElementById('systemPrompt');
+        const resetSystemBtn = document.getElementById('resetSystemBtn');
+        const userPromptInput = document.getElementById('userPrompt');
+        const resetPromptBtn = document.getElementById('resetPromptBtn');
         const sourceTextArea = document.getElementById('sourceText');
         const targetTextArea = document.getElementById('targetText');
         const sourceLangSelect = document.getElementById('sourceLang');
@@ -273,7 +353,6 @@
             const sourceText = sourceTextArea.value.trim();
             const sourceLang = sourceLangSelect.value;
             const targetLang = targetLangSelect.value;
-            const customInstructions = customPromptInput.value.trim();
 
             // Validation
             errorBox.style.display = 'none';
@@ -293,16 +372,22 @@
             translateBtn.innerHTML = '<span class="loading"></span>Translating...';
 
             try {
+                const systemPrompt = systemPromptInput.value.trim();
+                const userPrompt = userPromptInput.value.trim();
+                const model = modelSelect.value;
+
                 const response = await fetch('/api/translate', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        sourceLang: sourceLang,
-                        targetLang: targetLang,
-                        sourceText: sourceText,
-                        customInstructions: customInstructions
+                        sourceLang,
+                        targetLang,
+                        sourceText,
+                        systemPrompt: systemPrompt || undefined,
+                        userPrompt: userPrompt || undefined,
+                        model
                     })
                 });
 
@@ -312,7 +397,7 @@
                     throw new Error(data.error || 'Translation failed');
                 }
 
-                targetTextArea.value = data.translation.trim();
+                targetTextArea.value = (data.translation || '').trim();
 
             } catch (error) {
                 console.error('Translation error:', error);
@@ -371,12 +456,34 @@
             }
         });
 
-        // Save and load custom prompt
-        customPromptInput.addEventListener('input', function() {
-            localStorage.setItem('translator_customPrompt', customPromptInput.value);
+        // Reset buttons
+        resetSystemBtn.addEventListener('click', function() {
+            systemPromptInput.value = DEFAULT_SYSTEM_PROMPT;
+            localStorage.removeItem('translator_systemPrompt');
         });
-        const savedPrompt = localStorage.getItem('translator_customPrompt');
-        if (savedPrompt) customPromptInput.value = savedPrompt;
+        resetPromptBtn.addEventListener('click', function() {
+            userPromptInput.value = DEFAULT_USER_PROMPT;
+            localStorage.removeItem('translator_userPrompt');
+        });
+
+        // Save to localStorage
+        modelSelect.addEventListener('change', function() {
+            localStorage.setItem('translator_model', modelSelect.value);
+        });
+        systemPromptInput.addEventListener('input', function() {
+            localStorage.setItem('translator_systemPrompt', systemPromptInput.value);
+        });
+        userPromptInput.addEventListener('input', function() {
+            localStorage.setItem('translator_userPrompt', userPromptInput.value);
+        });
+
+        // Load saved values on page load
+        const savedModel = localStorage.getItem('translator_model');
+        const savedSystemPrompt = localStorage.getItem('translator_systemPrompt');
+        const savedUserPrompt = localStorage.getItem('translator_userPrompt');
+        if (savedModel) modelSelect.value = savedModel;
+        if (savedSystemPrompt) systemPromptInput.value = savedSystemPrompt;
+        if (savedUserPrompt) userPromptInput.value = savedUserPrompt;
 
         console.log('Translator loaded successfully');
     </script>
